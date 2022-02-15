@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <LangVersion>9</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>UnsafeGbxConnector</AssemblyName>
+    <RootNamespace>UnsafeGbxConnector</RootNamespace>
+    <Company>UnsafeGbxConnector</Company>
+    <Product>UnsafeGbxConnector</Product>
+    <PackageVersion>0.0.7</PackageVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <Optimize>true</Optimize>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="DefaultEcs" Version="*" />
+    <PackageReference Include="NLog" Version="5.0.0-preview.1" />
+    <PackageReference Include="U8XmlParser" Version="1.1.0-pre1" />
+  </ItemGroup>
+</Project>

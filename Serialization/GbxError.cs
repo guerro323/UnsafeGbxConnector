@@ -17,7 +17,7 @@ namespace UnsafeGbxConnector.Serialization
 
         public override string ToString()
         {
-            return $"{Code}: {Text}";
+            return $"Error({Code}: {Text})";
         }
     }
 }

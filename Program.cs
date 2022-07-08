@@ -3,6 +3,9 @@ using System.Diagnostics;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using NLog;
+using NLog.Config;
+using NLog.Targets;
 using UnsafeGbxConnector.Serialization;
 using UnsafeGbxConnector.Serialization.Readers;
 using UnsafeGbxConnector.Serialization.Writers;
@@ -72,7 +75,34 @@ namespace UnsafeGbxConnector
     {
         private static async Task Main(string[] args)
         {
+            TaskScheduler.UnobservedTaskException += (sender, eventArgs) =>
+            {
+                Console.WriteLine($"{eventArgs.Exception}");
+            };
+
+            LoggingConfiguration config = new();
+            
+            ConsoleTarget logConsole = new("logconsole");
+
+            config.AddRule(LogLevel.Trace, LogLevel.Fatal, logConsole);
+
+            LogManager.Configuration = config;
+            
             var instance = new GbxConnection();
+            instance.OnCallback += msg =>
+            {
+                Console.WriteLine($"Message: {msg.ToString()}");
+
+                var reader = msg.Reader;
+                if (msg.Match("ManiaPlanet.PlayerChat"))
+                {
+                    var playerId = reader[0].ReadInt();
+                    var login = reader[1].ReadString();
+                    var text = reader[2].ReadString();
+
+                    //Console.WriteLine($"{playerId} {login}: {text}");
+                }
+            };
             
             try
             {
@@ -85,30 +115,14 @@ namespace UnsafeGbxConnector
 
             while (true)
             {
-                Thread.Sleep(10);
+                Thread.Sleep(1000);
+                //instance.Queue(new ChatSendServerMessagePacket {Text = "Hello"});
             }
-            
-            instance.Dispose();
         }
 
         private static async Task DoAsync(GbxConnection instance)
         {
             instance.Connect(IPEndPoint.Parse("127.0.0.1:5000"));
-            instance.OnCallback += msg =>
-            {
-                Console.WriteLine($"{msg.ToString()}");
-
-                var reader = msg.Reader;
-                if (msg.Match("ManiaPlanet.PlayerChat"))
-                {
-                    var playerId = reader[0].ReadInt();
-                    var login = reader[1].ReadString();
-                    var text = reader[2].ReadString();
-
-                    Console.WriteLine($"{playerId} {login}: {text}");
-                }
-            };
-
             instance.Queue(new AuthenticatePacket {Login = "SuperAdmin", Password = "SuperAdmin"});
 
             var writer = new GbxWriter("EnableCallbacks");
@@ -124,8 +138,6 @@ namespace UnsafeGbxConnector
             if (!getVersionOption.TryGetResult(out var versionPacket, out var getVersionError))
                 Console.WriteLine(getVersionError.ToString());
             
-            Console.WriteLine($"{versionPacket.Name}");
-
             writer = new GbxWriter("GetMapList");
             writer.WriteInt(4);
             writer.WriteInt(0);
@@ -133,18 +145,6 @@ namespace UnsafeGbxConnector
             await instance.QueueAsync(writer, message => { Console.WriteLine("ye"); });
 
             instance.Queue(new ChatSendServerMessagePacket {Text = "Hello"});
-
-            writer = new GbxWriter("SendChatSerporpropr");
-            writer.WriteString("hello");
-
-            await instance.QueueAsync(writer, gbx =>
-            {
-                if (gbx.IsError)
-                {
-                    
-                }
-                Console.WriteLine($"{gbx.Error}");
-            });
 
             writer = new GbxWriter("WriteFile");
             writer.WriteString("file.txt");
@@ -154,24 +154,31 @@ namespace UnsafeGbxConnector
             {
                 Console.WriteLine(gbx.Error);
             });
-            
-            for (var i = 0; i < 1000; i++)
+
+            writer = new GbxWriter("TriggerModeScriptEventArray");
+            writer.WriteString("XmlRpc.EnableCallbacks");
+            using (var array = writer.BeginArray())
             {
-                var sw = new Stopwatch();
-                sw.Start();
-                for (var x = 0; x < 256; x++)
-                {
-                    var w = new GbxWriter("ChatSendServerMessage");
-                    w.WriteString("Hello World!");
-
-                    instance.Queue(w);
-                }
-                sw.Stop();
-
-                await Task.Delay(100);
-
-                Console.WriteLine(sw.Elapsed.TotalMilliseconds + "ms");
+                array.AddString("1");
             }
+            await instance.QueueAsync(writer, c =>
+            {
+                Console.WriteLine("err? " + c.Error);
+            });
+
+            writer = new GbxWriter("GetPlayerList");
+            writer.WriteInt(-1);
+            writer.WriteInt(0);
+            writer.WriteInt(0);
+            await instance.QueueAsync(writer, gbx =>
+            {
+                var array = gbx.Reader[0].ReadArray();
+                for (var i = 0; array.TryReadAt(out var element, i); i++)
+                {
+                    Console.WriteLine(element.AsStruct()["Login"].ReadString());
+                }
+                return 0;
+            });
         }
     }
 }

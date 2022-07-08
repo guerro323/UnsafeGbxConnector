@@ -53,9 +53,6 @@ namespace UnsafeGbxConnector.Serialization.Readers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GbxReader ReadArray()
         {
-            if (Xml.Name != "array")
-                throw new InvalidOperationException($"not an array ({Xml.Name})");
-
             // FirstChild = data, <array><data>...
             return new GbxReader(Xml.FirstChild.Value, true);
         }

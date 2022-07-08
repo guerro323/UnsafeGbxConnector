@@ -43,7 +43,7 @@ namespace UnsafeGbxConnector.Serialization
 
         public readonly GbxError Error;
 
-        public bool IsError => Error.Code > 0;
+        public bool IsError => Error.Code != 0;
 
         private GbxResponse(GbxReader reader, GbxError error)
         {

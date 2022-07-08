@@ -252,10 +252,13 @@ namespace UnsafeGbxConnector
                     Action = response =>
                     {
                         callback(response);
-                        if (response.IsError)
-                            tcs.SetException(new InvalidOperationException(response.Error.ToString()));
+                        Task.Run(() =>
+                        {
+                            if (response.IsError)
+                                tcs.SetException(new InvalidOperationException(response.Error.ToString()));
 
-                        tcs.SetResult();
+                            tcs.SetResult();
+                        });
                     },
                     Gbx = gbx
                 });
@@ -273,16 +276,22 @@ namespace UnsafeGbxConnector
         public Task<T> QueueAsync<T>(GbxWriter gbx, Func<GbxResponse, T> callback)
         {
             var tcs = new TaskCompletionSource<T>();
+            var o = GCHandle.Alloc(tcs, GCHandleType.WeakTrackResurrection);
+            
+            var toQueue = new QueuedMessage
+            {
+                Action = response =>
+                {
+                    // Why it is wrapped in Task.Run?
+                    // tcs.SetResult will result in a deadlock if called in a sync method from an async method
+                    Task.Run(() => tcs.SetResult(callback(response)));
+                },
+                Gbx = gbx
+            };
+            
             using (_createSynchronization.Synchronize())
             {
-                _queuedMessages.Add(new QueuedMessage
-                {
-                    Action = response =>
-                    {
-                        tcs.SetResult(callback(response));
-                    },
-                    Gbx = gbx
-                });
+                _queuedMessages.Add(toQueue);
             }
 
             return tcs.Task;

@@ -7,7 +7,7 @@
     <RootNamespace>UnsafeGbxConnector</RootNamespace>
     <Company>UnsafeGbxConnector</Company>
     <Product>UnsafeGbxConnector</Product>
-    <PackageVersion>0.0.8</PackageVersion>
+    <PackageVersion>0.0.9</PackageVersion>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

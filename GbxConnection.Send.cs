@@ -282,9 +282,10 @@ namespace UnsafeGbxConnector
             {
                 Action = response =>
                 {
+                    var result = callback(response);
                     // Why it is wrapped in Task.Run?
                     // tcs.SetResult will result in a deadlock if called in a sync method from an async method
-                    Task.Run(() => tcs.SetResult(callback(response)));
+                    Task.Run(() => tcs.SetResult(result));
                 },
                 Gbx = gbx
             };
